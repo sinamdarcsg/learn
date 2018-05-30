@@ -1,0 +1,161 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Tue May 29 08:39:55 2018
+
+@author: communitysoftwaregroup
+"""
+
+
+import pandas as pd
+
+class Liheap:
+    
+    # constructor loads the file and list the data types
+    def __init__(self):
+        columnsToBeUsed=['FiscalYear', 'AgencyID', 'App Number', 'Person #', 'BenefitLevel', 'TotalBenefitPaid', 'Remaining', 'City/Town', 'Total Income', 'Primary Heat Source',   'Number in Household', 'FamilyTypeDescription',  'ConsTotalBilled', 'LangSpeakUnderstandEng', 'ConsGallonsConsumed', 'Age', 'Sex', 'Handicap',  'Income', 'Educ', 'Insurance',  'RaceDescription',  'Benefit Level', 'HeatingSystemNeedRepair', 'HomeNeedWAP', 'Dwelling weatherized', 'Divide Bill',  'SEU',   'P/S','VendorCode',  'TransactionDateTime', 'VoucherNumber',   'FuelType', 'DeliveryDate', 'BillingDate', 'RetailPrice',  'MORPrice', 'FeeAmount',  'TotalPaid', 'Balance',  'OriginalGallons', 'SecondaryPay', 'OriginalFee',  'ForceRetailPayment', 'PriceBeingPaid', 'DivideBill', 'Adjustment']
+        self.LiheapDF=pd.read_csv("/home/communitysoftwaregroup/Documents/LiheapMergedData/dum1.csv", sep='_',usecols=columnsToBeUsed)
+        
+        #List of data types
+        self.intList=['Number in Household','Age']
+        self.floatList=['BenefitLevel', 'TotalBenefitPaid','Remaining','Total Income','ConsTotalBilled','ConsGallonsConsumed','Income','RetailPrice', 'MORPrice','MORPrice', 'FeeAmount',  'TotalPaid', 'Balance','OriginalFee','PriceBeingPaid']
+        self.objectList=['FiscalYear','AgencyID', 'App Number', 'Person #','City/Town','Primary Heat Source','FamilyTypeDescription','LangSpeakUnderstandEng','Sex', 'Handicap', 'Educ', 'Insurance',  'RaceDescription',  'Benefit Level', 'HeatingSystemNeedRepair', 'HomeNeedWAP', 'Dwelling weatherized','Divide Bill','SEU','P/S','VendorCode','FuelType','OriginalGallons','ForceRetailPayment','DivideBill', 'Adjustment']
+        self.boolList=['VoucherNumber']
+        self.dateList=['TransactionDateTime','DeliveryDate','BillingDate']
+        
+# =============================================================================
+#         self.intList=['Number in Household','Age']
+#         self.floatList=['BenefitLevel', 'TotalBenefitPaid','Remaining','Total Income','ConsTotalBilled','ConsGallonsConsumed','Income','RetailPrice','Gallons', 'MORPrice','MORPrice', 'FeeAmount',  'TotalPaid', 'Balance','OriginalFee','PriceBeingPaid','AdjustsVoucherNumber', 'AdjustsPaymentNumber', 'AdjustsAppNumber']
+#         self.objectList=['FiscalYear','AgencyID', 'App Number', 'Person #','City/Town','Primary Heat Source','FamilyTypeDescription','LangSpeakUnderstandEng','Sex', 'Handicap', 'Educ', 'Insurance',  'RaceDescription',  'Benefit Level', 'HeatingSystemNeedRepair', 'HomeNeedWAP', 'Dwelling weatherized','Divide Bill','SEU','P/S','Vendor Code','BillingNotInHousehold','FuelType','Deleted','OriginalGallons','ForceRetailPayment','DivideBill', 'Adjustment']
+#         self.boolList=['VoucherNumber']
+#         self.dateList=['TransactionDateTime','DeliveryDate','BillingDate']
+# =============================================================================
+        
+       
+        
+    ## fill the Na's with appropriate values
+    def clean_data_fill_NA(self):
+       self.LiheapDF['Adjustment'].fillna(0,inplace=True) 
+       self.LiheapDF['Educ'].fillna(-1,inplace=True)
+       self.LiheapDF['FamilyTypeDescription'].fillna('Other',inplace=True)
+       self.LiheapDF['ForceRetailPayment'].fillna('N',inplace=True)
+       self.LiheapDF['FuelType'].fillna(-1,inplace=True)
+       self.LiheapDF['Insurance'].fillna(-1,inplace=True)
+       self.LiheapDF['P/S'].fillna('u',inplace=True)
+       self.LiheapDF['VendorCode'].fillna(-1,inplace=True)
+       self.LiheapDF['RaceDescription'].fillna('Other',inplace=True)
+       self.LiheapDF['Sex'].fillna('u',inplace=True)
+       
+       
+       
+    ## create unique idenfying keys for the data using Fiscal year, agency id, household id   
+    def create_keys(self):
+        rearrangedColumns=list(self.LiheapDF)
+        ##Adding Person Key and Householdkey
+        self.LiheapDF["PersonKey"]=self.LiheapDF['FiscalYear'].map(str)+self.LiheapDF['AgencyID'].map(str)+self.LiheapDF['App Number'].map(str)+self.LiheapDF['Person #'].map(str)
+        self.LiheapDF["HouseholdKey"]=self.LiheapDF['FiscalYear'].map(str)+self.LiheapDF['AgencyID'].map(str)+self.LiheapDF['App Number'].map(str)
+        
+        ## Rearranging Columns
+        rearrangedColumns.insert(4,"PersonKey")
+        rearrangedColumns.insert(5,"HouseholdKey")
+        self.LiheapDF=self.LiheapDF[rearrangedColumns]
+        
+        ## Sorts the Dataframe based on Household key and then personkey
+        self.LiheapDF=self.LiheapDF.sort_values(by=['HouseholdKey','PersonKey'])
+        
+    def case_sensitization(self):
+        cols=['Handicap','Sex']
+        
+        for column_name in cols:
+            #replace nan with 'U'
+            self.LiheapDF[column_name].fillna('U',inplace=True)
+            #replace ' ' with 'U'
+            self.LiheapDF[column_name].replace(r's+','U',regex=True,inplace=True)
+            #case sensitization of the column
+            self.LiheapDF[column_name] = self.LiheapDF[column_name].apply(lambda x:x.upper())
+        
+    
+    def data_type_conversion(self):      
+        #object, int,  float and bool conversion
+        self.LiheapDF[self.intList] = self.LiheapDF[self.intList].astype('int64') 
+        self.LiheapDF[self.floatList] = self.LiheapDF[self.floatList].astype('float64')
+        self.LiheapDF[self.objectList] = self.LiheapDF[self.objectList].astype('object')
+        self.LiheapDF[self.boolList] = self.LiheapDF[self.boolList].astype('bool')
+        
+        #time conversion
+        self.LiheapDF[self.dateList] = self.LiheapDF[self.dateList].astype('datetime64[ns]',format="%Y%m%d")
+        self.LiheapDF['TransactionDateTime']= pd.DatetimeIndex(self.LiheapDF['TransactionDateTime']).normalize()
+        self.LiheapDF['DeliveryDate']= pd.DatetimeIndex(self.LiheapDF['DeliveryDate']).normalize()
+        self.LiheapDF['BillingDate']= pd.DatetimeIndex(self.LiheapDF['BillingDate']).normalize()
+           
+    def null_check(self):
+        name = list(self.LiheapDF)
+        #check for number of nulls in each column
+        null_check = {}
+        for n in name:
+            x = pd.isnull(self.LiheapDF[[n]]).sum()
+            null_check[n] = int(x)
+        return null_check
+
+
+    def unique_and_count(self):
+        count_unique = {}
+        unique_list = {}
+        for i in list(self.LiheapDF):
+            c = len(self.LiheapDF[i].unique())
+            count_unique[i] = c
+            unique_list[i] = self.LiheapDF[i].unique()
+        return count_unique, unique_list   
+    
+    
+    
+    ##Lookup Dataframe
+    def lookup_DF_genaration(self):
+        self.list_of_lookup_columns=['FiscalYear', 'AgencyID', 'App Number', 'Person #', 'PersonKey', 'HouseholdKey', 'BenefitLevel', 'TotalBenefitPaid', 'Remaining', 'City/Town', 'Total Income', 'Primary Heat Source', 'Number in Household', 'FamilyTypeDescription', 'ConsTotalBilled', 'LangSpeakUnderstandEng', 'ConsGallonsConsumed', 'Age', 'Sex', 'Handicap', 'Income', 'Educ', 'Insurance', 'RaceDescription', 'Benefit Level', 'HeatingSystemNeedRepair', 'HomeNeedWAP', 'Dwelling weatherized', 'Divide Bill', 'SEU', 'P/S', 'Vendor Code', 'BillingNotInHousehold']
+        self.LookUpDF=self.LiheapDF[self.list_of_lookup_columns]
+        self.LookUpDF.sort_values(by=['HouseholdKey','PersonKey']) 
+        self.LookUpDF.drop_duplicates()
+    
+    
+    ## Plots of the dates
+    def delivery_date_total_paid(self):
+        processed_df = self.LiheapDF[["HouseholdKey","DeliveryDate","TotalPaid"]]        
+        processed_df = processed_df.drop_duplicates()
+        
+        #Calculate benefit
+        processed_df_benefit = processed_df[processed_df["TotalPaid"] >=0]
+        benefit = processed_df_benefit.groupby("DeliveryDate")[['TotalPaid']].sum()
+        benefit = benefit.reset_index()
+        benefit = benefit.rename(columns = {"DeliveryDate":"DeliveryDate","TotalPaid":"Benefit"})
+        
+        #Calculate Billing
+        processed_df_billing = processed_df[processed_df["TotalPaid"] <0]
+        billing = processed_df_billing.groupby("DeliveryDate")[['TotalPaid']].sum()
+        billing["TotalPaid"] = -1*billing["TotalPaid"]
+        billing = billing.reset_index()
+        billing = billing.rename(columns = {"DeliveryDate":"DeliveryDate","TotalPaid":"Billing"})
+        
+        #Create df with all dates
+        end_date = max(billing["DeliveryDate"].max(),benefit["DeliveryDate"].max())
+        start_date = min(billing["DeliveryDate"].min(),benefit["DeliveryDate"].min())
+        
+        Dates = pd.DataFrame(pd.date_range(start = start_date, end = end_date, freq = 'D'))
+        Dates = Dates.rename(columns = {0:'DeliveryDate'})
+        Processed_Frame = Dates.merge(billing,on = 'DeliveryDate',how='left')
+        Processed_Frame = Processed_Frame.merge(benefit,on = 'DeliveryDate',how='left')
+        
+        Processed_Frame = Processed_Frame.fillna(0)
+        
+        return Processed_Frame 
+    
+       
+#Object creation       
+our_object=Liheap()
+ #method invocations in order
+our_object.clean_data_fill_NA()
+our_object.data_type_conversion()
+our_object.case_sensitization()
+our_object.create_keys()
+null_checker=our_object.null_check()
+count,unique_list=our_object.unique_and_count()
+#our_object.lookup_DF_genaration()

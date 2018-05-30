@@ -81,6 +81,7 @@ df2elements=['PersonKey','HouseholdKey','TransactionNumber', 'TransactionDateTim
 LiheapDF2=LiheapDF1[df2elements].copy()
 LiheapDF1=LiheapDF1.drop(df2elements,axis=1)
 LiheapDF1=LiheapDF1.drop_duplicates()
+print("This is a trial")
 
 
 
